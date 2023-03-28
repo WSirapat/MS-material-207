@@ -1,0 +1,261 @@
+---
+title: "MS Comprehensive Exam 2022"
+date: "STA 207  (100 points)"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+___
+
+```{r,echo=T,results=F,message=F}
+library(lme4)
+```
+
+In this exam, we investigate the `ChickWeight` dataset in `R`. You can load the data using the following commands. Carefully read the help file of `ChickWeight` before working on the following questions. 
+
+```{r, echo=T}
+data(ChickWeight)
+```
+
+***
+
+**(a) Briefly summarize all variables in the data set. You need to provide the definition of the variable and quantitative summary. **
+
+<b> Solution: </b>  (Type your answer here)
+
+**weight**: Numeric variable giving the body weight of the chick.  
+
+**Time**: Numeric variable giving the number of days since birth when measure was made.  
+
+**Chick**: Factor with 50 levels giving a unique identifier for the chick.  
+
+**Diet**: Factor with 4 levels indicating which experimental diet the chick received.
+
+```{r}
+# str(ChickWeight)
+# nlevels(ChickWeight$Chick)
+# levels(ChickWeight$Chick)
+```
+
+
+```{r,message=FALSE,out.width='70%',fig.align='center'}
+summary_table = summary(ChickWeight)
+summary_table
+
+plot(table(ChickWeight$Chick))
+barplot(table(ChickWeight$Diet))
+
+# Get summary using Group_by using dplyr
+library(dplyr)
+summary_table2 = ChickWeight %>% group_by(Diet) %>% 
+  summarise(
+    count=n(),
+    min=min(weight),
+    Q1=quantile(weight, 0.25),
+    mean=mean(weight),
+    SD =sd(weight),
+    Q3 = quantile(weight, 0.75),
+    max=max(weight)
+  )
+summary_table2
+```
+
+```{r,fig.align='center',out.width='70%',message=FALSE}
+library(gplots)
+plotmeans(weight~Diet, data=ChickWeight, xlab="Diet", ylab="Weight",
+          main="Main effect, Diet") 
+
+with(ChickWeight, interaction.plot(x.factor=Time, 
+                                   trace.factor=Diet, 
+                                   response=weight, 
+                            xlab="Time",ylab="Diet", main="Interaction"))
+
+```
+
+
+**(b) Visualize the weights of each chicks over time in one plot, where (i) each chick is represented by one solid curve, and (ii) the `diet` is color-coded as black (1), red (2), green (3), and blue (4). In addition to the required visualization, you may add any supporting curves, symbols, or any additional plots that you find informative.**
+	
+<b> Solution: </b>  (Type your answer here)
+
+
+```{r,message=FALSE,out.width='70%',fig.align='center'}
+# Plot and add title, x and y labels, and legend title. (MAKE SURE TO CHANGE THOSE!)
+library(ggplot2)
+ggplot(ChickWeight, aes(x=Time, y=weight, group=Chick, color=Diet)) + 
+  geom_line() + 
+  scale_color_manual(values = c("black", "red", "green", "blue")) + 
+  ggtitle("Weights of each chick over time") + 
+  xlab("Time") + ylab("Chick Weight") + labs(colour="Diet Type")
+```
+
+
+***
+
+**(c) Write down an appropriate one-way ANOVA model to answer the question whether there is any changes in mean weights at Day 20 across the four diet group. To receive full credits, you need to (i) write down the model, explain your notation, constraint(s) and/or assumptions; (ii) state the null and alternative hypotheses; (iii) state the test result. You can find basic LaTeX commands at the end of this file.  **
+
+
+<b> Solution: </b>  (Type your answer here)
+
+One Way Anova Factor Effects Model:
+$$
+Y_{ij} = \mu + \alpha_{i} + \epsilon_{ij} \\
+i = 1,2,3,4 \\
+j = 1, \dots, n_{i}\\
+$$
+With Assumptions:
+$$
+\epsilon_{ij} \overset{i.i.d}{\sim} N(0,\sigma^2)
+$$
+
+With Constraints:
+$$
+\sum_{i=1}^4 n_{i}\alpha_i=0 \\
+$$
+
+$Y_{ij}$: represents the **weight** (response variable) at Day 20 of the j-th **chick** (observation) in the i-th **Diet** (factor effect).  
+
+$\mu$: represents the population mean **weight** (response variable).  
+
+$\alpha_{i}$: represents the factor effects of **Diet** (factor effect).  
+
+$\epsilon_{ij}$: capture any unexplained effects on **weight** (response variable).  
+
+$n_{i}$: sample size for the i-th **Diet** (factor effect). 
+
+Hypothesis Testing:
+Testing at a significance level of 0.05
+$$
+H_{0}: \alpha_{i} = 0 \text{ for all i} \\
+H_{a}: \text{at least one } \alpha_{i}\neq 0
+$$
+
+```{r}
+# Create a dataframe that keeps only Day 20 values
+Day20 = ChickWeight %>% filter(Time == 20)
+
+# Fit One Way Anova model 
+model1 = lm(weight~as.factor(Diet), data= Day20)
+anova(model1)
+
+## Alt. way to fit and get p-values
+anova.fit = aov(weight~as.factor(Diet), data=Day20)
+summary(anova.fit)
+```
+
+From the anova table, since p-value is less than 0.05, we reject the null hypothesis and conclude that there is evidence in the data to suggest that there is significant effect of at least one diet at Day 20.
+
+
+**(d) For the model fitted in (c), carry out necessary diagnostics to check if the model assumptions are valid. What are your findings?**
+
+<b> Solution: </b>  (Type your answer here)
+
+
+```{r,fig.align='center',out.width='70%'}
+par(mfrow=c(2,2), mar=c(3,3,2,2), mgp=c(1.7,.7,0))
+plot(anova.fit)
+```
+
+In the Residual vs. Fitted value plot, we see no sign of unequal variance or violation of the zero-mean assumption.  
+The Normal Q-Q plot appears to be normal and satisfy the normality assumption.  
+All assumptions are met and our model is valid.
+
+
+**(e) Write down an appropriate two-way ANOVA model with fixed effect to answer the question whether there is any differences in growth rates across the four diet groups. Here the growth rate can be roughly seen as the effects of `Time` on `weight`. To receive full credits, you need to (i) write down the model, explain your notation, constraint(s) and/or assumptions; (ii) state the null and alternative hypotheses; (iii) state the test result. Hint: You may want to recycle the answer in (c) to save time. **
+
+
+<b> Solution: </b>  (Type your answer here)
+
+Two Way Anova Factor Effects Model (Fixed Effects Model):
+$$
+Y_{ijk} = \mu_{..} + \alpha_{i} + \beta_{j} + (\alpha\beta)_{ij} + \epsilon_{ijk} \\
+i = 1,\dots, 4 \\
+j = 1, \dots, 12 \\
+k = 1,\dots,n_{ij}
+$$
+With Assumptions:
+$$
+\epsilon_{ijk} \overset{i.i.d}{\sim} N(0,\sigma^2)
+$$
+
+With Constraints:
+$$
+\sum_{i=1}^4 \alpha_{i}= \sum_{j=1}^{12} \beta_{j} = 0 \\
+\sum_{i=1}^4 (\alpha\beta)_{ij}= \sum_{j=1}^{12} (\alpha\beta)_{ij} = 0 \; \forall i,j\\
+$$
+
+$Y_{ijk}$: represents the **weight** (response variable) of the k-th **chick** (observation) at j-th **Time** (factor 2 effect) in the i-th **Diet** (factor 1 effect).
+
+$\mu_{..}$: represents the population mean **weight** (response variable).  
+
+$\alpha_{i}$: represents the factor effects of **Diet** (factor 1 effect). 
+
+$\beta_{j}$: represents the factor effects of **Time** (factor 2 effect). 
+
+$(\alpha\beta)_{ij}$: represents the interaction term of factor effects of **Time** and **Diet**. 
+
+$\epsilon_{ijk}$: capture any unexplained effects on **weight** (response variable).  
+
+$n_{ij}$: sample size for the i-th **Diet** and the j-th **Time** .  
+
+$$
+\mu_{..} = \sum_{i=1}^4 \sum_{j=1}^{12} \frac{\mu_{ij}}{(4*12)}, \; \mu_{i.} = \sum_{j=1}^{12} \frac{\mu_{ij}}{12}, \; \mu_{.j} = \sum_{i=1}^4 \frac{\mu_{ij}}{4}
+$$
+
+Hypothesis Testing: Testing interaction term at a significance level of 0.05
+
+$$
+H_{0}: \text{All } (\alpha\beta)_{ij} = 0 \\
+H_{a}: \text{At least one} (\alpha\beta)_{ij} \neq 0
+$$
+
+```{r}
+# Fit Two way Anova model (Fixed Effects)
+model2 = lm(weight ~ as.factor(Diet) * as.factor(Time), data=ChickWeight)
+anova(model2)
+
+## Alt. way to fit and get p-values
+two_anova_fit = aov(weight ~ as.factor(Diet) * as.factor(Time), data=ChickWeight)
+summary(two_anova_fit)
+
+## Alt. way to fit and get p-values
+# Full model
+full = aov(weight ~ as.factor(Diet) * as.factor(Time), data=ChickWeight)
+# Reduced
+reduced = aov(weight ~ as.factor(Diet) + as.factor(Time), data=ChickWeight)
+# Full/reduced test
+anova(reduced, full)
+```
+
+From the anova table the p-value of the interaction term is less than $\alpha = 0.05$, thus we reject the null hypothesis. We conclude that the interaction term is significant enough to be included in our model. There is evidence in the data to suggest that growth rates differ between different diets.
+
+***
+
+**(f) We want to take the chick-specific effect into account. The new mixed effect model is based on the model in (e), where `Time` is treated as a continuous covariate instead of a categorical factor, and a random intercept and a random slope (of `Time`) are added into the model. Report the fitted coefficients of the fixed effects, and summarize your findings from this model. Hint: You do not need to write down the new model, but you may find it helpful.  **
+
+<b> Solution: </b>  (Type your answer here)
+
+The coefficients for the mixed model are reported below. The intercept is the reference class, and represents Diet1 in this model.
+
+```{r}
+# Fit Two way Anova model (Mixed Effects)
+## (1|Chick) is the random effect of Chick
+## (0 + Time|Chick) is the random slope of time given a chick
+mixed_model = lmer(weight ~ Time * as.factor(Diet) + (1|Chick) + (0 + Time|Chick),
+                   data=ChickWeight)
+# Report the coefficients (of the fixed effects)
+summary(mixed_model)$coefficients
+```
+
+
+***
+
+**(g) Assume that the chicks in each diet are randomly selected from the same population, i.e., the enrollment of chicks is independent from any other factors. State the Stable Unit Treatment Value Assumption, write down the potential outcomes (weight at Day 20), and verify whether the randomization assumption holds. (This question will be replaced by another, since causal inference will not be covered this quarter.)** 
+	
+
+<b> Solution: </b>  (Type your answer here) 
+
+
+
+
+
