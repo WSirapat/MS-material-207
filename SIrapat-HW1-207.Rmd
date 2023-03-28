@@ -1,0 +1,228 @@
+---
+title: "STA 207: Assignment I"
+author: "(Sirapat Watakajaturaphon, Student ID: 920226951)"
+output: html_document
+---
+***
+
+**Instructions** You may adapt the code in the course materials or any sources (e.g., the Internet, classmates, friends). In fact, you can craft solutions for almost all questions from the course materials with minor modifications. However, you need to write up your own solutions and acknowledge all sources that you have cited in the Acknowledgement section. 
+
+Failing to acknowledge any non-original efforts will be counted as plagiarism. This incidence will be reported to the Student Judicial Affairs. 
+
+*** 
+
+
+A consulting firm is investigating the relationship between wages and occupation. The file `Wage.csv` contains three columns, which are 
+
+  - `wage`, the wage of the subject,
+  - `ethnicity`, the ethnicity of the subject,
+  - and `occupation`, the occupation of the subject. 
+  
+We will only use `wage` and `occupation` in this assignment. 
+
+
+```{r,echo=T,results=F,message=F}
+Wage = read.csv('/Users/ploysirapat/Documents/WQ2023/STA207/HW207/Wage.csv')
+library(gplots)
+attach(Wage)
+
+table(Wage$occupation)
+N = nrow(Wage)
+```
+
+
+***
+
+(1) Write down a one-way ANOVA model for this data. For consistency, choose the letters from $\{Y,\alpha, \mu, \epsilon\}$ and use the factor-effect form. 
+
+Let $\mu_i=\mu+\alpha_i$. The factor-effect form of the one-way ANOVA model can be written as:
+$$Y_{ij}=\mu+\alpha_i+\epsilon_{ij},\quad j=1,...,n_i,\quad i=1,...,6,$$
+
+where $Y_{ij}$ is the wage of the $j$th sample in the $i$th occupation. Here, we define the occupations: $i=1$ management, $i=2$ office, $i=3$ sales, $i=4$ services, $i=5$ technical, and $i=6$ worker. The constant $\mu$ is defined as $\sum_{i=1}^6(n_i/N)\mu_i$ where $\mu_i$ is the cell mean when the occupation is $i$ and $N=\sum_{i=1}^r n_i$ is the total sample size. The main effects plot in Part 3, shows the sample size for each occupation $n_1=55$, $n_2=97$, $n_3=38$, $n_4=83$, $n_5=105$, and $n_6=156$. The effect of the $i$th occupation is represented by $\alpha_i$ which satisfies $\sum_{i=1}^6n_i\alpha_i=0$, and the random errors $\epsilon_{ij}$ are i.i.d. $N(0,\sigma^2)$.
+
+***
+
+(2)  Write down the least squares estimator of $\alpha_i$ for all $i$. Find the expectation and variance of this estimate in terms of $\{n_i\}$ and the parameters of the model. 
+
+For $i=1,...,6$, the least squares estimator of $\alpha_i$ is
+
+$$\hat{\alpha}_i=\bar{Y}_{i\cdot}-\hat{\mu},\quad{\rm where}\quad\hat{\mu}=\sum_{i=1}^6\frac{n_i}{N}\bar{Y}_{i\cdot}$$
+
+First, we consider the expectation and variance of $\bar{Y}_{i\cdot}$ for all $i=1,...,6$.
+
+\begin{align*}
+E\left(\bar{Y}_{i\cdot}\right)&=E\left(\frac{1}{n_i}\sum_{j=1}^{n_i}Y_{ij}\right)=\frac{1}{n_i}\sum_{j=1}^{n_i}E(Y_{ij})=\frac{1}{n_i}\sum_{j=1}^{n_i}\mu_i=\mu_i=\mu+\alpha_i\\
+{\rm Var}\left(\bar{Y}_{i\cdot}\right)&={\rm Var}\left(\frac{1}{n_i}\sum_{j=1}^{n_i}Y_{ij}\right)=\frac{1}{n_i^2}{\rm Var}\left(\sum_{j=1}^{n_i}Y_{ij}\right)=\frac{1}{n_i^2}n_i\sigma^2=\frac{\sigma^2}{n_i}
+\end{align*}
+
+Hence, we obtain the expectation of $\hat{\alpha}_i$ as follows.
+\begin{align*}
+E(\hat{\alpha}_i)=E(\bar{Y}_{i\cdot}-\hat{\mu})=E\left(\bar{Y}_{i\cdot}\right)-E(\hat{\mu})
+&=E\left(\bar{Y}_{i\cdot}\right)-E\left(\sum_{i=1}^6\frac{n_i}{N}\bar{Y}_{i\cdot}\right)\\
+&=E\left(\bar{Y}_{i\cdot}\right)-\sum_{i=1}^6\frac{n_i}{N}E\left(\bar{Y}_{i\cdot}\right)\\
+&=(\mu+\alpha_i)-\sum_{i=1}^6\frac{n_i}{N}(\mu+\alpha_i)\\
+&=(\mu+\alpha_i)-\mu\sum_{i=1}^6\frac{n_i}{N}-\frac{1}{N}\sum_{i=1}^6n_i\alpha_i\\
+&=(\mu+\alpha_i)-\mu\cdot1-0\\
+&=\alpha_i
+\end{align*}
+
+And the variance of $\hat{\alpha}_i$:
+\begin{align*}
+{\rm Var}(\hat{\alpha}_i)={\rm Var}\left[\bar{Y}_{i\cdot}-\sum_{i=1}^6\frac{n_i}{N}\bar{Y}_{i\cdot}\right]&={\rm Var}\left[\left(1-\frac{n_i}{N}\right)\bar{Y}_{i\cdot}-\sum_{k\neq i}\frac{n_k}{N}\bar{Y}_{k\cdot}\right]\\
+&=\left(1-\frac{n_i}{N}\right)^2{\rm Var}(\bar{Y}_{i\cdot})+{\rm Var}\left(\sum_{k\neq i}\frac{n_k}{N}\bar{Y}_{k\cdot}\right)\\
+&=\left(1-\frac{n_i}{N}\right)^2\frac{\sigma^2}{n_i}+\sum_{k\neq i}\frac{n_k^2}{N^2}\frac{\sigma^2}{n_k}\\
+&=\frac{(N-n_i)^2}{N^2n_i}\sigma^2+\sum_{k\neq i}\frac{n_k}{N^2}\sigma^2\\
+&=\frac{(N-n_i)^2}{N^2n_i}\sigma^2+\frac{N-n_i}{N^2}\sigma^2\\
+&=\frac{N^2-Nn_i}{N^2n_i}\sigma^2\\
+&=\left(\frac{1}{n_i}-\frac{1}{N}\right)\sigma^2
+\end{align*}
+ 
+*** 
+
+(3) Obtain the main effects plots. Summarize your findings.
+
+```{r, fig.align='center'}
+plotmeans(wage ~ occupation, data = Wage, ylim=c(5,15), xlab = "Occupations", ylab = "Wage", 
+          main= "Main effects plot")
+```
+
+- Management has the highest wage and Technical is a close second. The rest of the occupations have significantly lower wages.
+
+- Management has the largest variability while Office has the lowest variability.
+
+- The sample sizes vary across the occupations (imbalanced).
+
+*** 
+
+(4) Set up the ANOVA table using `R` for your model. Briefly explain this table.   
+
+```{r}
+anova.fit = aov(wage ~ as.factor(occupation), data = Wage)
+summary(anova.fit)
+```
+
+Treatment sum of squares (SSTR) is 2538 with degree of freedom 5. Residual sum of squares (SSE) is 11539 with degree of freedom 528. The mean square for treatments is MSTR=SSTR/df(SSTR)=507.5. The mean square for residuals is MSE=SSE/df(SSE)=21.9. The F test statistics is $F^*$=MSTR/MSE=23.22. The p-value is less than 2e-16, so it is obviously less than 0.05.
+
+*** 
+
+(5) Test whether there is any association between `occupation` and `wage`. In particular, you need to (a) define the null and alternative hypotheses using the notation in Part 1, (b) conduct the test, and (c) explain your test result. 
+
+a) The null and alternative hypotheses are: $$H_0:\alpha_1=\alpha_2=...=\alpha_6=0\quad{\rm vs}\quad H_1:\text{ not all $\alpha_i$ are zero}.$$
+
+b) Conduct the F-test. From the ANOVA table in Part 4, the F test statistic is $F^*$=MSTR/MSE=23.22. Under $H_0$, the $F^*$ follows an F-distribution with $(r-1,N-r)=(6-1,534-6)=(5,528)$ degrees of freedom. We then calculate the p-value $P(F_{5,528}\geq F^*=23.22)$ which, based on the ANOVA table in Part 4, is less than 0.05. 
+
+c) Since the p-value is less than 0.05, we reject the null and conclude that there is a significant association between `occupation` and `wage` at the significance level of 0.05.
+
+*** 
+
+(6) For the model fitted in Part 4, carry out the necessary diagnostics to check if the model assumptions given in Part 1 are valid. What are your findings?
+
+```{r, fig.align='center'}
+par(mfrow=c(2,2), mar=c(3,3,2,2), mgp=c(1.7,.7,0))
+plot(anova.fit)
+```
+
+- There is a presence of outliers. We may need to remove those points 171, 410, and 107.
+
+- From the Residuals vs Fitted plot, the points do not have an equal spread along the X-axis. So, there is an indication of non-constant variance. Moreover, from the Levene's test below, the p-value is much smaller than 0.05, hence we conclude that the equal variance assumption does not hold at $\alpha=0.05$.
+
+```{r, message=FALSE}
+library(car)
+leveneTest(wage ~ as.factor(occupation), data = Wage) # Levene's test
+```
+
+- From the Normal QQ plot, the distribution appears to be right-skewed. So, the normality assumption is violated. We can also check by Shapiro-Wilk normality test. Because of a very small p-value, we reach the same conclusion that the errors are not normally distributed.
+
+```{r}
+shapiro.test(anova.fit$residuals) # Shapiro-Wilk normality test
+```
+
+*** 
+	
+(7) Assuming that the assumptions you made are true, can you statistically conclude if there is one occupation where the mean wage is the highest? Use the most appropriate method (use $\alpha=0.05$) to support your statement.
+
+Tukey-Kramer method is usually selected when performing pairwise comparisons. Since we have access to the data, we can apply all three methods and choose the one with the smallest multiplier (in order to get the narrowest confidence intervals). The table below confirms that the most appropriate method is Tukey-Kramer.
+
+```{r}
+m = choose(6,2)
+alpha = 0.05
+r = length(anova.fit$coefficients)
+B.stat = qt(1-alpha/(2*m), N-r)                    # Bonfferoni
+T.stat = qtukey(1-alpha, nmeans=r, df=N-r)/sqrt(2) # Tukey-Kramer
+S.stat = sqrt( (r-1)*qf(1-alpha, r-1, N-r) )       # Scheffe
+
+knitr::kable(data.frame(Bonferroni=B.stat, Tukey=T.stat, Scheffe=S.stat),
+             caption = paste("Comparison of multipliers"), digits = 2)
+```
+
+
+By the main effects plot in Part 3, the two largest cell means belong to Management and Technical. So, we will focus on the difference of these two largest means. The forth row shows the lower bound (lwr=-2.98) and the upper bound (upr=1.47) of the difference between Technical and Management. We can see that zero is covered in the interval, so we cannot conclude that there is ONE occupation with the highest mean wage.
+
+```{r}
+TukeyHSD(anova.fit) # Tukey-Kramer
+```
+
+*** 
+
+(8) Consider a one-way ANOVA model with fixed effects 
+\begin{equation}\label{eqn:anova}
+Y_{i,j}=\mu + \alpha_i+ \epsilon_{i,j}, \ j=1,\ldots, n_i, i =1,\ldots, r,
+\end{equation}
+where $\{ \alpha_i\}$ satisfies that $\sum_{i} n_i \alpha_i=0$ and $\{\epsilon_{i,j}\}$ are i.i.d. $N(0,\sigma^2)$.  For the above model, write down the loss function associated with least squares, denoted as $L_1(\mu,\alpha)$, and write down the log-likelihood, denoted as $L_2(\mu,\alpha)$.
+
+The loss function associated with least squares is:
+\begin{align}
+    L_1(\mu,\alpha)=\sum_{i=1}^6\sum_{j=1}^{n_i}(Y_{ij}-(\mu+\alpha_i))^2
+\end{align}
+
+The likelihood function is 
+\begin{align*}
+    L(\mu,\alpha)=\prod_{i,j}f(Y_{ij}|\mu,\alpha)&=\prod_{i,j}\frac{1}{\sqrt{2\pi\sigma^2}}\exp\left\{-\frac{(Y_{ij}-(\mu+\alpha_i))^2}{2\sigma^2}\right\}\\&=(2\pi\sigma^2)^{-\frac{N}{2}}\exp\left\{-\frac{1}{2\sigma^2}\sum_{i=1}^6\sum_{j=1}^{n_i}(Y_{ij}-(\mu+\alpha_i))^2\right\}
+\end{align*}
+
+Hence, the log-likelihood is:
+\begin{align}
+    L_2(\mu,\alpha)=\log L(\mu,\alpha)=-\frac{N}{2}\log(2\pi\sigma^2)-\frac{1}{2\sigma^2}\sum_{i=1}^6\sum_{j=1}^{n_i}(Y_{ij}-(\mu+\alpha_i))^2
+\end{align}
+
+***
+
+(9) Find the maximum likelihood estimator of $\mu$ and $\alpha$ using the log-likelihood $L_2(\mu,\alpha)$ in Question 8. 
+
+To obtain the MLE of $\mu$, we will take the derivative of $L_2(\mu,\alpha)$ with respect to $\mu$, set the derivative to zero, and solve for $\mu$.
+
+\begin{align*}
+    0=\frac{\partial}{\partial\mu}L_2(\mu,\alpha)&=\frac{1}{\sigma^2}\sum_{i=1}^6\sum_{j=1}^{n_i}(Y_{ij}-(\mu+\alpha_i))\\
+    &=\frac{1}{\sigma^2}\left[\sum_{i=1}^6\sum_{j=1}^{n_i}Y_{ij}-\sum_{i=1}^6\sum_{j=1}^{n_i}\mu-\sum_{i=1}^6\sum_{j=1}^{n_i}\alpha_i\right]\\
+    &=\frac{1}{\sigma^2}\left[\sum_{i=1}^6\sum_{j=1}^{n_i}Y_{ij}-N\mu-\sum_{i=1}^6n_i\alpha_i\right]\\
+    &=\frac{1}{\sigma^2}\left[\sum_{i=1}^6\sum_{j=1}^{n_i}Y_{ij}-N\mu-0\right]
+\end{align*}
+
+Hence, the MLE of $\mu$ is 
+\begin{align*}
+    \hat\mu=\frac{1}{N}\sum_{i=1}^6\sum_{j=1}^{n_i}Y_{ij}=\bar{Y}_{\cdot\cdot}
+\end{align*}
+
+Next, we will find the MLE of $\alpha_i$, for $i=1,...,6$. Again take the derivative of $L_2(\mu,\alpha)$ with respect to $\alpha_i$, set it tozero, and then solce for $\alpha_i$.
+
+\begin{align*}
+    0=\frac{\partial}{\partial\alpha_i}L_2(\mu,\alpha)&=\frac{1}{\sigma^2}\sum_{j=1}^{n_i}(Y_{ij}-(\mu+\alpha_i))\\
+    &=\frac{1}{\sigma^2}\left[\sum_{j=1}^{n_i}Y_{ij}-\sum_{j=1}^{n_i}\mu-\sum_{j=1}^{n_i}\alpha_i\right]\\
+    &=\frac{1}{\sigma^2}\left[\sum_{j=1}^{n_i}Y_{ij}-n_i\mu-n_i\alpha_i\right]
+\end{align*}
+
+Thus, for $i=1,...,6$, the MLE of $\alpha_i$ is \begin{align*}
+    \hat{\alpha}_i=\left(\frac{1}{n_i}\sum_{j=1}^{n_i}Y_{ij}\right)-\hat{\mu}=\bar{Y}_{i\cdot}-\bar{Y}_{\cdot\cdot}
+\end{align*}
+
+***
+
+## Acknowledgement {-}
+1. Course notes from STA 207 (both lecture and discussion)
+
+2. Course notes from STA 106 (discussion)
+
+## Session information {-}
+```{r}
+sessionInfo()
+```

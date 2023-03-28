@@ -1,0 +1,304 @@
+---
+title: "STA 207: Assignment II"
+author: "Sirapat Watakajaturaphon, Student ID: 920226951"
+output: html_document
+---
+***
+
+**Instructions** You may adapt the code in the course materials or any sources (e.g., the Internet, classmates, friends). In fact, you can craft solutions for almost all questions from the course materials with minor modifications. However, you need to write up your own solutions and acknowledge all sources that you have cited in the Acknowledgement section. 
+
+Failing to acknowledge any non-original efforts will be counted as plagiarism. This incidence will be reported to the Student Judicial Affairs. 
+
+***
+
+A consulting firm is investigating the relationship between wages and some demographic factors. The file `Wage.csv` contains three columns, which are 
+
+  - `wage`, the wage of the subject,
+  - `ethnicity`, the ethnicity of the subject,
+  - and `occupation`, the occupation of the subject. 
+
+
+```{r,echo=T,results=F,message=F}
+Wage=read.csv('Wage.csv');
+library(gplots)
+library(lme4)
+attach(Wage)
+
+Wage$ethnicity = as.factor(Wage$ethnicity)
+Wage$occupation = as.factor(Wage$occupation)
+```
+
+```{r}
+knitr::kable(table(Wage$ethnicity, Wage$occupation), caption='Table1: The numbers of observations in each cell')
+```
+
+***
+
+(1) Write down a two-way ANOVA model for this data. For consistency, choose the letters from $\{Y,\alpha, \beta, \mu, \epsilon\}$ and use the factor-effect form. 
+
+**Solution:** The factor-effect form of the two-way ANOVA model can be written as:
+$$Y_{ijk}=\mu_{..}+\alpha_i+\beta_j+\epsilon_{ijk},\quad k=1,...,n_{ij},\quad j=1,...,6\quad i=1,2,3,$$
+
+where the random errors $\epsilon_{ij}$ are i.i.d. $N(0,\sigma^2)$. $Y_{ijk}$ is the wage of the $k$th sample from the $i$th ethnicity and $j$th occupation. Ethnicity has $a=3$ levels $i=1$ Caucasian, $i=2$ Hispanic, and $i=3$ Others. And Occupations has $b=6$ levels: $j=1$ Management, $j=2$ Office, $j=3$ Sales, $j=4$ Services, $j=5$ Technical, and $j=6$ Worker. The total sample size is $n_T=534$.
+
+The overall mean $\mu_{..}$ is defined as $\sum_{i=1}^3\sum_{j=1}^6\mu_{ij}/18$ where $\mu_{ij}$ is the cell mean determined by one unique combination of two factors. Table 1 shows that the numbers of observations vary across the cells, so it is an unbalanced design. The effect of the $i$ ethnicity is represented by $\alpha_i$ and that of the $j$th occupation by $\beta_j$. The constraints on these effects are:
+\begin{align*}
+\sum_{i=1}^3\alpha_i&=\sum_{j=1}^6\beta_j=0
+\end{align*}
+
+***
+
+(2) Obtain the main effects plots and the interaction plot. Summarize your findings.
+
+**Solution:**
+
+```{r, fig.align='center', out.width='70%'}
+library(gplots)
+par(mfrow=c(1,1))
+
+# main effect plot of ethnicity
+plotmeans(wage~ethnicity, data=Wage, xlab="Ethnicity", ylab="Wage", main="Main effect, Ethnicity") 
+```
+
+- Caucasian seems to have the overall highest wage. But there is no big difference in wages across the ethnicities.
+
+- The variability in the Hispanic's wages is very large. Caucasian has the lowest variability
+
+- The sample size for Caucasian is very large compared to that for other ethnicities.
+
+```{r, fig.align='center', out.width='70%'}
+# main effect plot of occupation
+plotmeans(wage~occupation, data=Wage, xlab="Occupation", ylab="Wage", main="Main effect, Occupation") 
+```
+
+- Management and Technical have high wages. The rest of the occupations have significantly lower wages.
+
+- Management has the largest variability while Office has the lowest variability.
+
+- The sample sizes vary across the occupations.
+
+```{r, fig.align='center', out.width='70%'}
+# interaction plot
+with(Wage, interaction.plot(ethnicity, occupation, wage, 
+                            xlab="Ethnicity",ylab="Wage", main="Interaction"))
+```
+
+- The interaction effect is not obviously present.
+
+***
+	
+(3) Fit the ANOVA model described in Part 1. Obtain the ANOVA table and state your conclusions. Are the findings here consistent with your initial assessments from Part 2?
+
+**Solution:** First, we test to see whether the interaction effects are present, $H_0:(\alpha\beta)_{ij}=0$ vs $H_1$: not all $(\alpha\beta)_{ij}=0$, at the significance level $\alpha=0.01$. The full model is the two-way ANOVA model with main effects and interaction $Y_{ijk}=\mu_{..}+\alpha_i+\beta_j+(\alpha\beta)_{ij}+\epsilon_{ijk}$ and the reduced model is the one in Part 1. Since the resulting p-value 0.26 is larger than 0.01, we conclude that the interaction terms are not significant at $\alpha=0.01$.
+
+```{r}
+# test for interactions
+full.model    = aov(wage ~ ethnicity * occupation, data=Wage)  # with interactions
+reduced.model = aov(wage ~ ethnicity +  occupation, data=Wage) # additive (no interactions), model in Part 1 
+anova(reduced.model, full.model) 
+```
+
+Because it is an unbalanced design and there is no interaction effect, the type II ANOVA is preferred. We fit the model described in Part 1 and obtain the ANOVA table as follows.
+
+```{r, message=FALSE}
+# fit model in Part 1
+library(car)
+options(knitr.kable.NA = '')
+knitr::kable(Anova(lm(wage ~ ethnicity + occupation, data=Wage), type = 'II'), 
+             caption = 'Table 2: ANOVA Table of model in Part 1')
+```
+
+- Based on the test for interactions, the interaction effects between ethnicity and occupation are not present, which corresponds to what we observed from the interaction plot in Part 2.
+
+- Based on the output p-values in Table 2, occupation is very significant to wages while ethnicity is not as much. This is similar to what we noticed from the main effects plots in Part 2.   
+
+***
+
+(4) Carry out a test to decide if the effect of ethnicity is present on the full data set, at the significance level $\alpha=0.01$. 
+
+**Solution:** The null and alternative hypotheses are: $$H_0:\alpha_1=\alpha_2=\alpha_3=0\quad{\rm vs}\quad H_1:\alpha_1\neq0\hspace{1mm}{\rm or}\hspace{1mm}\alpha_2\neq0\hspace{1mm}{\rm or}\hspace{1mm}\alpha_3\neq0.$$
+
+We use an F test where the test statistic is $F^*=$MSA/MSE which follows an F-distribution with $df=(a-1,(n_T-1)ab)$. From Table 2, the output p-value for ethnicity is calculated to be 0.12 which is larger than 0.01. Hence, we fail to reject the null, indicating the effect of ethnicity is not present at $\alpha=0.01$.
+
+***	
+
+(5) For this part and the next, assume that the occupations have been selected randomly. Write down an appropriate ANOVA model that is additive in the factors and explain the terms in the model.
+	
+**Solution:** The additive two-way ANOVA with random effects for both factors can be written as:
+$$Y_{ijk}=\mu_{..}+\alpha_i+\beta_j+\epsilon_{ijk},\quad k=1,...,n_{ij},\quad j=1,...,6\quad i=1,2,3,$$
+
+where the random errors $\epsilon_{ij}$ are i.i.d. $N(0,\sigma^2)$, the random main effects of the $i$th ethnicity $\alpha_i$ are i.i.d. $N(0,\sigma^2_\alpha)$, the random main effects of the $j$th occupation $\beta_j$ are i.i.d. $N(0,\sigma^2_\beta)$, and all these random variables are mutually independent.
+
+In this model (random effect model), $\mu_{..}$ represents population mean across \emph{all possible} factor levels. And the factor levels are selected randomly from a larger pool of levels.
+
+***
+
+(6) Assuming that the model in Part 5 is appropriate, obtain an estimate of the proportion of variability that is due to variability in occupation.
+
+**Solution:**
+
+```{r}
+# random effect model
+library(lme4)
+fit2 = lmer(wage ~ (1 | ethnicity) + (1 | occupation), data = Wage)
+summary(fit2)
+```
+
+From the output, we have the estimates $\hat\sigma_\alpha^2=0.32$ (ethnicity), $\hat\sigma_\beta^2=6.23$ (occupation), and $\hat\sigma^2=21.77$ (error term). Thus, the total variation is $0.32+6.23+21.77=28.32$. The estimate of the proportion of variability that is due to variability in occupation is $6.23/28.32=0.22$.
+
+*** 
+
+(7) 
+Consider a two-way ANOVA model with fixed effects 
+\begin{equation}\label{eqn:anova_two}
+Y_{i,j,k}=\mu + \alpha_i+ \beta_j+\epsilon_{i,j,k}, \  i =1,\ldots, a, j=1,\ldots, b, k=1,\ldots, n
+\end{equation}
+where $\{ \alpha_i\}$ satisfies that $\sum_{i}^a  \alpha_i=0$, $\{\beta_j\}$ satisfies that $\sum_{j}^b  \beta_j=0$,  and $\{\epsilon_{i,j,k}\}$ are i.i.d. $N(0,\sigma^2)$. Derive the least squares estimator from the above equation. 
+
+**Solution:** The least squares (LS) estimators $\hat\mu_{LS}$, $\hat\alpha_i$, and $\hat\beta_j$ are the minimizers of 
+\begin{align*}
+    Q(\mu,\boldsymbol\alpha,\boldsymbol\beta) = \sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^n\left[Y_{ijk}-\left(\mu+\alpha_i+\beta_j\right)\right]^2.
+\end{align*}
+
+Taking
+\begin{align*}
+    0=\frac{\partial Q}{\partial\mu}&=-2\sum_i\sum_j\sum_k[Y_{ijk}-(\mu+\alpha_i+\beta_j)]\\
+    &=-2\left\{\sum_i\sum_j\sum_k Y_{ijk}-abn\mu-nb\sum_i\alpha_i-na\sum_j\beta_j\right\}\\
+    &=-2\left\{\sum_i\sum_j\sum_k Y_{ijk}-abn\mu-0-0\right\}
+\end{align*}
+
+yields the LS estimator of $\mu$ 
+\begin{align*}
+    \hat{\mu}_{LS}=\frac{1}{abn}\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^n Y_{ijk}.
+\end{align*}
+
+For $i=1,...,a$, consider
+\begin{align*}
+    0=\frac{\partial Q}{\partial\alpha_i}&=-2\sum_j\sum_k[Y_{ijk}-(\mu+\alpha_i+\beta_j)]\\
+    &=-2\left\{\sum_j\sum_k Y_{ijk}-nb\mu-nb\alpha_i-n\sum_j\beta_j\right\}\\
+    &=-2\left\{\sum_j\sum_k Y_{ijk}-nb\mu-nb\alpha_i-0\right\}
+\end{align*}
+
+Thus, the LS estimator of $\alpha_i$ is
+\begin{align*}
+    \hat{\alpha}_i=\frac{1}{nb}\sum_{j=1}^b\sum_{k=1}^n Y_{ijk}-\hat{\mu}_{LS},\quad{\rm for}\hspace{1mm}i=1,...,a.
+\end{align*}
+
+For $j=1,...,b$, consider
+\begin{align*}
+    0=\frac{\partial Q}{\partial\beta_j}&=-2\sum_i\sum_k[Y_{ijk}-(\mu+\alpha_i+\beta_j)]\\
+    &=-2\left\{\sum_i\sum_k Y_{ijk}-na\mu-n\sum_i\alpha_i-na\beta_j\right\}\\
+    &=-2\left\{\sum_i\sum_k Y_{ijk}-na\mu-0-na\beta_j\right\}
+\end{align*}
+
+Thus, the LS estimator of $\beta_j$ is
+\begin{align*}
+    \hat{\beta}_j=\frac{1}{na}\sum_{i=1}^a\sum_{k=1}^n Y_{ijk}-\hat{\mu}_{LS},\quad{\rm for}\hspace{1mm}j=1,...,b.
+\end{align*}
+
+***
+
+(8)
+Consider the following models 
+\begin{equation}\label{eqn:cellmeans}
+Y_{i,j,k}=\mu_{i,j}+\epsilon_{i,j,k}, \ k=1,\ldots, n, i =1,\ldots, a, j=1,\ldots, b, 
+\end{equation}
+and 
+\begin{equation}\label{eqn:reg}
+Y_{i,j,k}= \sum_{l=1}^a \sum_{m=1}^b \beta_{l,m} X_{l,m;i,j,k}+\epsilon_{i,j,k}, \ k=1,\ldots, n, i =1,\ldots, a, j=1,\ldots, b,
+\end{equation}
+where $\{\epsilon_{i,j,k}\}$ are i.i.d. $N(0,\sigma^2)$ and $X_{l,m;i,j,k}=1$ when $(l,m)=(i,j)$ and $X_{l,m;i,j,k}=0$ otherwise. Express $\{\beta_{l,m}: l=1,\ldots, a; m=1,\ldots, b\}$ using $\{\mu_{i,j}: i=1,\ldots, a; j=1,\ldots, b\}$.
+
+**Solution:** For $1\leq i\leq a$ and $1\leq j\leq b$, consider
+\begin{align*}
+    \mu_{i,j}&=\sum_{l=1}^a\sum_{m=1}^b \beta_{l,m} X_{l,m;i,j,k}\\
+    &=\sum_{l=1}^a\left[\beta_{l,1}X_{l,1;i,j,k}+...+\beta_{l,j}X_{l,j;i,j,k}+...+\beta_{l,b}X_{l,b;i,j,k}\right]\\
+    &=\sum_{l=1}^a\left[\beta_{l,j}X_{l,j;i,j,k}\right]=\left[\beta_{1,j}X_{1,j;i,j,k}+...+\beta_{i,j}X_{i,j;i,j,k}+...+\beta_{a,j}X_{a,j;i,j,k}\right]=\beta_{i,j}X_{i,j;i,j,k}=\beta_{i,j}
+\end{align*}
+
+Hence, for $1\leq l\leq a$ and $1\leq m\leq b$, 
+\begin{align*}
+    \beta_{l,m}&=\mu_{l,m}=\mu_{l,m}X_{l,m;l,m,k}=\sum_{i=1}^a\left[\mu_{i,m}X_{l,m;i,m,k}\right]=\sum_{i=1}^a\left[\sum_{j=1}^b\mu_{i,j}X_{l,m;i,j,k}\right]
+\end{align*}
+
+Therefore, $\{\beta_{l,m}: l=1,\ldots, a; m=1,\ldots, b\}$ can be expressed using $\{\mu_{i,j}: i=1,\ldots, a; j=1,\ldots, b\}$ as follows: \begin{align*}
+    \beta_{l,m}=\sum_{i=1}^a\sum_{j=1}^b\mu_{i,j}X_{l,m;i,j,k}
+\end{align*} 
+
+***
+
+(9) 
+With some abuse of notation, we rewrite the regression model from Question 8 as 
+\begin{equation}\label{eqn:reg_new}
+Y= X\beta + \epsilon,
+\end{equation}
+where $Y$ is a $n_T$-dimensional vector, $X$ is an $n_T \times p$ matrix, $\beta$ is a $p$-dimensional vector, and $\{\epsilon\} \sim {\rm MVN}(0, \sigma^2 {\rm I})$, i.e., multivariate normal with covariance matrix $\sigma^2 {\rm I}$. Express the residual sum of squares and explained sum of squares in $Y$ and $X$, and then show that these two sum of squares are independent. 
+
+**Solution:** The LS estimators vector: \begin{align*}
+    \hat{\boldsymbol\beta}=(\textbf{X}'\textbf{X})^{-1}\textbf{X}'\textbf{Y}
+\end{align*}
+
+The fitted values vector: \begin{align*}
+    \hat{\textbf{Y}}=\textbf{X}\hat{\boldsymbol\beta}=\textbf{X}(\textbf{X}'\textbf{X})^{-1}\textbf{X}'\textbf{Y}=\textbf{HY}
+\end{align*}
+
+where $\textbf{H}=\textbf{X}(\textbf{X}'\textbf{X})^{-1}\textbf{X}'$ is the hat matrix. Note that $\textbf{H}$ is a projection matrix, i.e., $\textbf{H}'=\textbf{H}$ and $\textbf{H}^2=\textbf{HH}=\textbf{H}$.
+
+The residuals vector: \begin{align*}
+    \textbf{e}=\textbf{Y}-\hat{\textbf{Y}}=\textbf{Y}-\textbf{HY}=(\textbf{I}-\textbf{H})\textbf{Y}
+\end{align*}
+Let $\textbf{1}=(1,...,1)'_{n_T}$ be a $n_T\times1$ vector of ones. Then define the $n_T\times n_T$ matrix \begin{align*}
+    \textbf{J}=\textbf{1}\textbf{1}'=\begin{bmatrix}1&1&\cdots&1\\1&1&\cdots&1\\\vdots&\vdots&&\vdots\\1&1&\cdots&1\\\end{bmatrix}
+\end{align*}
+
+We can see that \begin{align*}
+    \textbf{HX}=\textbf{X}(\textbf{X}'\textbf{X})^{-1}\textbf{X}'\textbf{X}=\textbf{X},
+\end{align*}
+
+then using the fact that some column of design matrix is $\textbf{1}=(1,...,1)'_{n_T}$ (since every cell has at least one observations), we have $\textbf{H}\textbf{1}=\textbf{1}$. This leads to \begin{align*}
+    \textbf{HJ}=\textbf{H11}'=\textbf{11}'=\textbf{J}\quad{\rm and}\quad
+    \textbf{JH}=\textbf{11}'\textbf{H}=\textbf{11}'=\textbf{J}.
+\end{align*}
+
+Thus, 
+
+- $(\textbf{I}-\textbf{H})$ is a projection matrix because $(\textbf{I}-\textbf{H})'=(\textbf{I}-\textbf{H})$ and $(\textbf{I}-\textbf{H})^2=\textbf{I}-\textbf{H}-\textbf{H}+\textbf{H}=(\textbf{I}-\textbf{H})$.
+
+- $(\textbf{H}-\frac{1}{n_T}\textbf{J})$ is a projection matrix because $(\textbf{H}-\frac{1}{n_T}\textbf{J})'=(\textbf{H}-\frac{1}{n_T}\textbf{J})$ and $$(\textbf{H}-\frac{1}{n_T}\textbf{J})^2=\textbf{H}-\frac{1}{n_T}\textbf{HJ}-\frac{1}{n_T}\textbf{JH}+\frac{1}{n_T}\textbf{J}=\textbf{H}-\frac{1}{n_T}\textbf{J}-\frac{1}{n_T}\textbf{J}+\frac{1}{n_T}\textbf{J}=(\textbf{H}-\frac{1}{n_T}\textbf{J}).$$
+
+Therefore, the residual sum of squares can be written as \begin{align*}
+    {\rm SSE}=\textbf{e}'\textbf{e}&=((\textbf{I}-\textbf{H})\textbf{Y})'((\textbf{I}-\textbf{H})\textbf{Y})\\
+    &=\textbf{Y}'(\textbf{I}-\textbf{H})'(\textbf{I}-\textbf{H})\textbf{Y}=\textbf{Y}'(\textbf{I}-\textbf{H})\textbf{Y}
+\end{align*}
+
+and the explained sum of squares can be written as \begin{align*}
+    {\rm SSR}=(\hat{\textbf{Y}}-\bar{\textbf{Y}})'(\hat{\textbf{Y}}-\bar{\textbf{Y}})&=\left((\textbf{H}-\frac{1}{n_T}\textbf{J})\textbf{Y}\right)'\left((\textbf{H}-\frac{1}{n_T}\textbf{J})\textbf{Y}\right)\\
+    &=\textbf{Y}'(\textbf{H}-\frac{1}{n_T}\textbf{J})'(\textbf{H}-\frac{1}{n_T}\textbf{J})\textbf{Y}\\
+    &=\textbf{Y}'(\textbf{H}-\frac{1}{n_T}\textbf{J})\textbf{Y}
+\end{align*}
+
+We show that $(\textbf{I}-\textbf{H})\textbf{Y}$ and $(\textbf{H}-\frac{1}{n_T}\textbf{J})\textbf{Y}$ are uncorrelated as follows:
+\begin{align*}
+    {\rm Cov}\left((\textbf{I}-\textbf{H})\textbf{Y},\hspace{1mm}\left(\textbf{H}-\frac{1}{n_T}\textbf{J}\right)\textbf{Y}\right)&=(\textbf{I}-\textbf{H}){\rm Var}\{\textbf{Y}\}\left(\textbf{H}-\frac{1}{n_T}\textbf{J}\right)\\
+    &=(\textbf{I}-\textbf{H})(\sigma^2\textbf{I})\left(\textbf{H}-\frac{1}{n_T}\textbf{J}\right)\\
+    &=\sigma^2\left[\textbf{H}-\frac{1}{n_T}\textbf{J}-\textbf{HH}+\frac{1}{n_T}\textbf{HJ}\right]\\
+    &=\sigma^2\left[\textbf{H}-\frac{1}{n_T}\textbf{J}-\textbf{H}+\frac{1}{n_T}\textbf{J}\right]\\
+    &=\textbf{0}
+\end{align*}
+
+With Normality assumption on the error terms, $(\textbf{I}-\textbf{H})\textbf{Y}$ and $(\textbf{H}-\frac{1}{n_T}\textbf{J})\textbf{Y}$ are independent. Since SSE is a function of $(\textbf{I}-\textbf{H})\textbf{Y}$ and SSR is a function of $(\textbf{H}-\frac{1}{n_T}\textbf{J})\textbf{Y}$, we can conclude that SSE and SSR are independent.
+
+***
+
+## Acknowledgement {-}
+
+1. Course notes from STA 207 (both lecture and discussion)
+
+2. Course notes from STA 206
+
+3. https://stat.ethz.ch/~meier/teaching/anova/random-and-mixed-effects-models.html#eq:cell-means-random
+
+## Session information {-}
+```{r}
+sessionInfo()
+```
