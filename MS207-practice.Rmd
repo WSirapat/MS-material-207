@@ -22,30 +22,47 @@ data(ChickWeight)
 
 **(a) Briefly summarize all variables in the data set. You need to provide the definition of the variable and quantitative summary. **
 
-<b> Solution: </b>  (Type your answer here)
+```{r}
+# see the definition of each variable
+?ChickWeight
+```
 
-**weight**: Numeric variable giving the body weight of the chick.  
+There are 4 variables in the `Chickweight` dataset.
 
-**Time**: Numeric variable giving the number of days since birth when measure was made.  
+- **weight**: the body weight of the chick (gm: Numeric).  
 
-**Chick**: Factor with 50 levels giving a unique identifier for the chick.  
+- **Time**: the number of days since birth when measure was made (Numeric).  
 
-**Diet**: Factor with 4 levels indicating which experimental diet the chick received.
+- **Chick**: a unique identifier for the chick (Ordered factor with 50 levels $18<...<48$).  
+
+- **Diet**:  an experimental diet the chick received (Factor with 4 levels: 1,2,3,4). 
 
 ```{r}
-# str(ChickWeight)
-# nlevels(ChickWeight$Chick)
-# levels(ChickWeight$Chick)
+# types
+sapply(ChickWeight, class)
+```
+
+```{r}
+# numeric (quantitative) variables
+summary(ChickWeight$weight)
+summary(ChickWeight$Time)
+```
+
+```{r}
+# categorical variables
+#nlevels(ChickWeight$Chick)
+#levels(ChickWeight$Chick)
+#table(ChickWeight$Chick)
+barplot(table(ChickWeight$Chick))
+
+#nlevels(ChickWeight$Diet)
+#levels(ChickWeight$Diet)
+#table(ChickWeight$Diet)
+barplot(table(ChickWeight$Diet))
 ```
 
 
 ```{r,message=FALSE,out.width='70%',fig.align='center'}
-summary_table = summary(ChickWeight)
-summary_table
-
-plot(table(ChickWeight$Chick))
-barplot(table(ChickWeight$Diet))
-
 # Get summary using Group_by using dplyr
 library(dplyr)
 summary_table2 = ChickWeight %>% group_by(Diet) %>% 
@@ -58,7 +75,7 @@ summary_table2 = ChickWeight %>% group_by(Diet) %>%
     Q3 = quantile(weight, 0.75),
     max=max(weight)
   )
-summary_table2
+# summary_table2
 ```
 
 ```{r,fig.align='center',out.width='70%',message=FALSE}
@@ -70,14 +87,10 @@ with(ChickWeight, interaction.plot(x.factor=Time,
                                    trace.factor=Diet, 
                                    response=weight, 
                             xlab="Time",ylab="Diet", main="Interaction"))
-
 ```
 
 
 **(b) Visualize the weights of each chicks over time in one plot, where (i) each chick is represented by one solid curve, and (ii) the `diet` is color-coded as black (1), red (2), green (3), and blue (4). In addition to the required visualization, you may add any supporting curves, symbols, or any additional plots that you find informative.**
-	
-<b> Solution: </b>  (Type your answer here)
-
 
 ```{r,message=FALSE,out.width='70%',fig.align='center'}
 # Plot and add title, x and y labels, and legend title. (MAKE SURE TO CHANGE THOSE!)
@@ -89,20 +102,18 @@ ggplot(ChickWeight, aes(x=Time, y=weight, group=Chick, color=Diet)) +
   xlab("Time") + ylab("Chick Weight") + labs(colour="Diet Type")
 ```
 
-
 ***
 
 **(c) Write down an appropriate one-way ANOVA model to answer the question whether there is any changes in mean weights at Day 20 across the four diet group. To receive full credits, you need to (i) write down the model, explain your notation, constraint(s) and/or assumptions; (ii) state the null and alternative hypotheses; (iii) state the test result. You can find basic LaTeX commands at the end of this file.  **
 
+The factor-effect form of the one-way ANOVA model can be written as:
 
-<b> Solution: </b>  (Type your answer here)
-
-One Way Anova Factor Effects Model:
 $$
-Y_{ij} = \mu + \alpha_{i} + \epsilon_{ij} \\
-i = 1,2,3,4 \\
+Y_{ij} = \mu + \alpha_{i} + \epsilon_{ij}, \\
+i = 1,2,3,4, \\
 j = 1, \dots, n_{i}\\
 $$
+
 With Assumptions:
 $$
 \epsilon_{ij} \overset{i.i.d}{\sim} N(0,\sigma^2)
@@ -110,32 +121,34 @@ $$
 
 With Constraints:
 $$
-\sum_{i=1}^4 n_{i}\alpha_i=0 \\
+\sum_{i=1}^4 n_{i}\alpha_i=0 
 $$
 
-$Y_{ij}$: represents the **weight** (response variable) at Day 20 of the j-th **chick** (observation) in the i-th **Diet** (factor effect).  
+- $Y_{ij}$: represents the **weight** (response variable) at Day 20 of the j-th **chick** (observation) in the i-th **Diet** (factor effect).  
 
-$\mu$: represents the population mean **weight** (response variable).  
+- $\mu$: represents the population mean **weight** (response variable).  
 
-$\alpha_{i}$: represents the factor effects of **Diet** (factor effect).  
+- $\alpha_{i}$: represents the factor effects of **Diet** (factor effect).  
 
-$\epsilon_{ij}$: capture any unexplained effects on **weight** (response variable).  
+- $\epsilon_{ij}$: capture any unexplained effects on **weight** (response variable).  
 
-$n_{i}$: sample size for the i-th **Diet** (factor effect). 
+- $n_{i}$: sample size for the i-th **Diet** (factor effect). $n_1=220,n_2=120,n_3=120,n_4=118$.
 
-Hypothesis Testing:
-Testing at a significance level of 0.05
+The constant $\mu$ is defined as $\sum_{i=1}^4(n_i/N)\mu_i$ where $\mu_i$ is the cell mean for the $i$-th **Diet** and $N=\sum_{i=1}^4 n_i$ is the total sample size. 
+
+
+Hypothesis Testing: Testing at a significance level of 0.05
+
 $$
-H_{0}: \alpha_{i} = 0 \text{ for all i} \\
-H_{a}: \text{at least one } \alpha_{i}\neq 0
+H_{0}: \alpha_{i} = 0 \text{ for all i=1,2,3,4}\quad{\rm vs}\quad H_{a}: \text{at least one } \alpha_{i}\neq 0.
 $$
 
 ```{r}
-# Create a dataframe that keeps only Day 20 values
+# Create a data frame that keeps only Day 20 values
 Day20 = ChickWeight %>% filter(Time == 20)
 
 # Fit One Way Anova model 
-model1 = lm(weight~as.factor(Diet), data= Day20)
+model1 = lm(weight ~ as.factor(Diet), data=Day20)
 anova(model1)
 
 ## Alt. way to fit and get p-values
@@ -143,35 +156,52 @@ anova.fit = aov(weight~as.factor(Diet), data=Day20)
 summary(anova.fit)
 ```
 
-From the anova table, since p-value is less than 0.05, we reject the null hypothesis and conclude that there is evidence in the data to suggest that there is significant effect of at least one diet at Day 20.
+From the anova table, since p-value is less than 0.05, we reject the null hypothesis and conclude that there are significant changes in mean weights at Day 20 across the four diet group at the significance level 0.05.
 
 
 **(d) For the model fitted in (c), carry out necessary diagnostics to check if the model assumptions are valid. What are your findings?**
-
-<b> Solution: </b>  (Type your answer here)
-
 
 ```{r,fig.align='center',out.width='70%'}
 par(mfrow=c(2,2), mar=c(3,3,2,2), mgp=c(1.7,.7,0))
 plot(anova.fit)
 ```
 
-In the Residual vs. Fitted value plot, we see no sign of unequal variance or violation of the zero-mean assumption.  
-The Normal Q-Q plot appears to be normal and satisfy the normality assumption.  
-All assumptions are met and our model is valid.
+The model assumptions seem to hold well:
+
+- There are no severe outliers present.
+
+- From the Residuals vs Fitted plot, the points have a similar spread along the X-axis. Also the Levene's test shows that the p-value is very large. Hence, we conclude that the equal variance assumption holds. Moreover, the zero-mean assumption appears to be satisfied.  
+
+```{r}
+library(car)
+leveneTest(weight~as.factor(Diet), data=Day20) # Levene's test
+```
+
+- Based on the Normal QQ plot (Most points fall on the straight line) and the large p-value from the Shapiro-Wilk normality test, we can conclude that the normality assumption is not violated.
+
+```{r}
+shapiro.test(anova.fit$residuals) # Shapiro-Wilk normality test
+```
 
 
 **(e) Write down an appropriate two-way ANOVA model with fixed effect to answer the question whether there is any differences in growth rates across the four diet groups. Here the growth rate can be roughly seen as the effects of `Time` on `weight`. To receive full credits, you need to (i) write down the model, explain your notation, constraint(s) and/or assumptions; (ii) state the null and alternative hypotheses; (iii) state the test result. Hint: You may want to recycle the answer in (c) to save time. **
 
+Here, we consider `Time` as a categorical variable with 12 levels. 
 
-<b> Solution: </b>  (Type your answer here)
+```{r}
+nlevels(as.factor(ChickWeight$Time))
+```
 
-Two Way Anova Factor Effects Model (Fixed Effects Model):
+```{r}
+with(ChickWeight, table(as.factor(Time), Diet)) # unbalanced design
+```
+
+The factor-effect form of the two-way ANOVA model with fixed effect:
 $$
-Y_{ijk} = \mu_{..} + \alpha_{i} + \beta_{j} + (\alpha\beta)_{ij} + \epsilon_{ijk} \\
-i = 1,\dots, 4 \\
-j = 1, \dots, 12 \\
-k = 1,\dots,n_{ij}
+Y_{ijk} = \mu_{..} + \alpha_{i} + \beta_{j} + (\alpha\beta)_{ij} + \epsilon_{ijk}, \\
+i = 1,2,3,4, \\
+j = 1, \dots, 12, \\
+k = 1,\dots,n_{ij}.
 $$
 With Assumptions:
 $$
@@ -180,33 +210,41 @@ $$
 
 With Constraints:
 $$
-\sum_{i=1}^4 \alpha_{i}= \sum_{j=1}^{12} \beta_{j} = 0 \\
+\sum_{i=1}^4 \alpha_{i}= \sum_{j=1}^{12} \beta_{j} = 0, \\
 \sum_{i=1}^4 (\alpha\beta)_{ij}= \sum_{j=1}^{12} (\alpha\beta)_{ij} = 0 \; \forall i,j\\
 $$
 
-$Y_{ijk}$: represents the **weight** (response variable) of the k-th **chick** (observation) at j-th **Time** (factor 2 effect) in the i-th **Diet** (factor 1 effect).
+- $Y_{ijk}$: represents the **weight** (response variable) of the k-th **chick** (observation) at j-th **Time** (factor 2 effect) in the i-th **Diet** (factor 1 effect).
 
-$\mu_{..}$: represents the population mean **weight** (response variable).  
+- $\mu_{..}$: represents the population mean **weight** (response variable).  
 
-$\alpha_{i}$: represents the factor effects of **Diet** (factor 1 effect). 
+- $\alpha_{i}$: represents the factor effects of **Diet** (factor 1 effect). 
 
-$\beta_{j}$: represents the factor effects of **Time** (factor 2 effect). 
+- $\beta_{j}$: represents the factor effects of **Time** (factor 2 effect). 
 
-$(\alpha\beta)_{ij}$: represents the interaction term of factor effects of **Time** and **Diet**. 
+- $(\alpha\beta)_{ij}$: represents the interaction term of factor effects of **Diet** and **Time**. 
 
-$\epsilon_{ijk}$: capture any unexplained effects on **weight** (response variable).  
+- $\epsilon_{ijk}$: the random errors.  
 
-$n_{ij}$: sample size for the i-th **Diet** and the j-th **Time** .  
+- $n_{ij}$: sample size for the i-th **Diet** and the j-th **Time** .  
+
 
 $$
-\mu_{..} = \sum_{i=1}^4 \sum_{j=1}^{12} \frac{\mu_{ij}}{(4*12)}, \; \mu_{i.} = \sum_{j=1}^{12} \frac{\mu_{ij}}{12}, \; \mu_{.j} = \sum_{i=1}^4 \frac{\mu_{ij}}{4}
+\mu_{..} = \sum_{i=1}^4 \sum_{j=1}^{12} \frac{\mu_{ij}}{(4\times12)},\quad \mu_{i.} = \sum_{j=1}^{12} \frac{\mu_{ij}}{12}, \quad \mu_{.j} = \sum_{i=1}^4 \frac{\mu_{ij}}{4}.
 $$
+
+The overall mean $\mu_{..}$ is defined as $\sum_{i=1}^4\sum_{j=1}^{12}\mu_{ij}/(4\times12)$ where $\mu_{ij}$ is the cell mean determined by one unique combination of two factors. Table 1 shows that the numbers of observations vary across the cells, so it is an unbalanced design. The effect of the $i$ ethnicity is represented by $\alpha_i$ and that of the $j$th occupation by $\beta_j$. The constraints on these effects are:
+
+$$
+\sum_{i=1}^4\alpha_i=\sum_{j=1}^{12}\beta_j=0, \\
+\sum_{i=1}^4 (\alpha\beta)_{ij}= \sum_{j=1}^{12} (\alpha\beta)_{ij} = 0 \; \forall i,j\\
+$$
+
 
 Hypothesis Testing: Testing interaction term at a significance level of 0.05
 
 $$
-H_{0}: \text{All } (\alpha\beta)_{ij} = 0 \\
-H_{a}: \text{At least one} (\alpha\beta)_{ij} \neq 0
+H_{0}: (\alpha\beta)_{ij} = 0\text{ for all }i,j \quad{\rm vs}\quad H_{a}: \text{At least one } (\alpha\beta)_{ij} \neq 0
 $$
 
 ```{r}
@@ -218,22 +256,17 @@ anova(model2)
 two_anova_fit = aov(weight ~ as.factor(Diet) * as.factor(Time), data=ChickWeight)
 summary(two_anova_fit)
 
-## Alt. way to fit and get p-values
-# Full model
-full = aov(weight ~ as.factor(Diet) * as.factor(Time), data=ChickWeight)
-# Reduced
+# test of interactions
+full    = aov(weight ~ as.factor(Diet) * as.factor(Time), data=ChickWeight)
 reduced = aov(weight ~ as.factor(Diet) + as.factor(Time), data=ChickWeight)
-# Full/reduced test
 anova(reduced, full)
 ```
 
-From the anova table the p-value of the interaction term is less than $\alpha = 0.05$, thus we reject the null hypothesis. We conclude that the interaction term is significant enough to be included in our model. There is evidence in the data to suggest that growth rates differ between different diets.
+From the anova table, the p-value of the interaction term is less than $\alpha = 0.05$, thus we reject the null hypothesis. We conclude that the interaction term is significant enough to be included in our model. There is evidence in the data to suggest that growth rates differ among the four diets.
 
 ***
 
 **(f) We want to take the chick-specific effect into account. The new mixed effect model is based on the model in (e), where `Time` is treated as a continuous covariate instead of a categorical factor, and a random intercept and a random slope (of `Time`) are added into the model. Report the fitted coefficients of the fixed effects, and summarize your findings from this model. Hint: You do not need to write down the new model, but you may find it helpful.  **
-
-<b> Solution: </b>  (Type your answer here)
 
 The coefficients for the mixed model are reported below. The intercept is the reference class, and represents Diet1 in this model.
 
@@ -243,6 +276,7 @@ The coefficients for the mixed model are reported below. The intercept is the re
 ## (0 + Time|Chick) is the random slope of time given a chick
 mixed_model = lmer(weight ~ Time * as.factor(Diet) + (1|Chick) + (0 + Time|Chick),
                    data=ChickWeight)
+
 # Report the coefficients (of the fixed effects)
 summary(mixed_model)$coefficients
 ```
